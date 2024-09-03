@@ -201,6 +201,37 @@ export const processDocToVectorDB = async (token: string, file_id: string) => {
 	return res;
 };
 
+export const processWebDocToVectorDB = async (token: string, url: string) => {
+	let error = null;
+
+	const res = await fetch(`${RAG_API_BASE_URL}/process/web-docs`, {
+		method: 'POST',
+		headers: {
+			Accept: 'application/json',
+			'Content-Type': 'application/json',
+			authorization: `Bearer ${token}`
+		},
+		body: JSON.stringify({
+			url
+		})
+	})
+		.then(async (res) => {
+			if (!res.ok) throw await res.json();
+			return res.json();
+		})
+		.catch((err) => {
+			error = err.detail;
+			console.log(err);
+			return null;
+		});
+
+	if (error) {
+		throw error;
+	}
+
+	return res;
+};
+
 export const uploadDocToVectorDB = async (token: string, collection_name: string, file: File) => {
 	const data = new FormData();
 	data.append('file', file);
