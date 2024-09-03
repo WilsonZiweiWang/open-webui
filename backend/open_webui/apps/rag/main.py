@@ -6,6 +6,7 @@ import shutil
 import socket
 import urllib.parse
 import uuid
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Optional, Sequence, Union
@@ -120,6 +121,9 @@ from langchain_community.document_loaders import (
 from langchain_core.documents import Document
 from colbert.infra import ColBERTConfig
 from colbert.modeling.checkpoint import Checkpoint
+
+from open_webui.apps.rag.fork import Fork, ForkManage, ChildLink
+import html2text as ht
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["RAG"])
@@ -324,6 +328,10 @@ class CollectionNameForm(BaseModel):
 class UrlForm(CollectionNameForm):
     url: str
 
+class FindUrlsForm(BaseModel):
+    url: str
+    depth: int = 1
+    selector: str = "body"
 
 class SearchForm(CollectionNameForm):
     query: str
@@ -1383,6 +1391,77 @@ def process_doc(
                 detail=ERROR_MESSAGES.DEFAULT(e),
             )
 
+@app.post("/process/web-docs")
+def process_web_docs(
+    form_data: UrlForm, user=Depends(get_verified_user)
+):
+    # "https://www.gutenberg.org/files/1727/1727-h/1727-h.htm"
+    responses = []
+    urls = get_page_links(FindUrlsForm(url=form_data.url, depth=2, selector="body"))
+    log.info(f"urls: {urls}")
+    for url in urls:  # Assuming form_data.urls is a list of URLs
+        try:
+            loader = get_web_loader(
+                url,
+                verify_ssl=app.state.config.ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION,
+            )
+            data = loader.load()
+            collection_name = calculate_sha256_string(url)[:63]
+
+            try:
+                result = store_data_in_vector_db(data, collection_name, overwrite=True)
+                log.info(f"collection_name: {collection_name}")
+                if result:
+                    response = {
+                        "status": True,
+                        "collection_name": collection_name,
+                        "known_type": True,
+                        "filename": re.sub(r"https?://", "", url),
+                    }
+                    responses.append(response)
+            except Exception as e:
+                log.exception(f"Error storing data in vector DB for URL {url}: {e}")
+                continue
+
+        except Exception as e:
+            log.exception(e)
+            if "No pandoc was found" in str(e):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=ERROR_MESSAGES.PANDOC_NOT_INSTALLED,
+                )
+            else:
+                log.exception(f"Error processing URL {url}: {e}")
+                continue
+
+    return responses
+
+@app.get('/page-links')
+def get_page_links(form_data: FindUrlsForm):
+    '''
+    Recursively get the links on the page up to the depth specified. HTML selectors may be used to filter the links.
+    '''
+    try:
+        url = form_data.url
+        depth = form_data.depth
+        selector = form_data.selector
+
+        links: list[str] = []
+        ForkManage(url, selector.split(" ") if selector is not None else []).fork(depth, set(), handler, links)
+        return links
+    except Exception as e:
+        log.exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ERROR_MESSAGES.DEFAULT(e),
+        )
+
+def handler(child_link: ChildLink, response: Fork.Response, links: list[str]):
+    if response.status == 200:
+        try:
+            links.append(child_link.url)
+        except Exception as e:
+            log.error(f'{str(e)}')
 
 class TextRAGForm(BaseModel):
     name: str

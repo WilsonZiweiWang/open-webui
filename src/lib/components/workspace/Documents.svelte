@@ -8,16 +8,21 @@
 	import { createNewDoc, deleteDocByName, getDocs } from '$lib/apis/documents';
 
 	import { SUPPORTED_FILE_TYPE, SUPPORTED_FILE_EXTENSIONS } from '$lib/constants';
-	import { processDocToVectorDB, uploadDocToVectorDB } from '$lib/apis/rag';
+	import { processDocToVectorDB, processWebDocToVectorDB, uploadDocToVectorDB } from '$lib/apis/rag';
 	import { blobToFile, transformFileName } from '$lib/utils';
 
 	import Checkbox from '$lib/components/common/Checkbox.svelte';
+	import Dropdown from '$lib/components/common/Dropdown.svelte';
+	import { DropdownMenu } from 'bits-ui';
+	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import { flyAndScale } from '$lib/utils/transitions';
 
 	import EditDocModal from '$lib/components/documents/EditDocModal.svelte';
 	import AddFilesPlaceholder from '$lib/components/AddFilesPlaceholder.svelte';
 	import AddDocModal from '$lib/components/documents/AddDocModal.svelte';
 	import { transcribeAudio } from '$lib/apis/audio';
 	import { uploadFile } from '$lib/apis/files';
+	import AddWebsiteModal from '../documents/AddWebsiteModal.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -31,6 +36,7 @@
 
 	let showSettingsModal = false;
 	let showAddDocModal = false;
+	let showAddWebsiteModal = false;
 	let showEditDocModal = false;
 	let selectedDoc;
 	let selectedTag = '';
@@ -96,6 +102,37 @@
 				return null;
 			});
 			await documents.set(await getDocs(localStorage.token));
+		}
+	};
+
+	const uploadWebsite = async (url: string, tags?: object) => {
+		const res = await processWebDocToVectorDB(localStorage.token, url).catch((error) => {
+			toast.error(error);
+			return null;
+		});
+
+		console.log({res})
+
+		if (res) {
+			for (const element of res){
+				await createNewDoc(
+					localStorage.token,
+					element.collection_name,
+					element.filename,
+					transformFileName(element.filename),
+					element.filename,
+					tags?.length > 0
+						? 
+						{
+							tags: tags
+						}
+						: null
+				).catch((error) => {
+					toast.error(error);
+					return null;
+				});
+				await documents.set(await getDocs(localStorage.token));
+			}
 		}
 	};
 
@@ -212,6 +249,7 @@
 {/key}
 
 <AddDocModal bind:show={showAddDocModal} {uploadDoc} />
+<AddWebsiteModal bind:show={showAddWebsiteModal} {uploadWebsite} />
 
 <div class="mb-3">
 	<div class="flex justify-between items-center">
@@ -247,24 +285,53 @@
 	</div>
 
 	<div>
-		<button
-			class=" px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-600 dark:border-0 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition font-medium text-sm flex items-center space-x-1"
-			aria-label={$i18n.t('Add Docs')}
-			on:click={() => {
-				showAddDocModal = true;
-			}}
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 16 16"
-				fill="currentColor"
-				class="w-4 h-4"
-			>
-				<path
-					d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z"
-				/>
-			</svg>
-		</button>
+		<Dropdown>
+			<Tooltip content={$i18n.t('More')}>
+				<button
+					class=" px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-600 dark:border-0 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition font-medium text-sm flex items-center space-x-1"
+					aria-label={$i18n.t('More')}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 16 16"
+						fill="currentColor"
+						class="w-4 h-4"
+					>
+						<path
+							d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5Z"
+						/>
+					</svg>
+				</button>
+			</Tooltip>
+			<div slot="content">
+				<DropdownMenu.Content
+				class="w-full max-w-[200px] rounded-xl px-1 py-1  border-gray-300/30 dark:border-gray-700/50 z-50 bg-white dark:bg-gray-850 dark:text-white shadow"
+				sideOffset={15}
+				alignOffset={-8}
+				side="left"
+				align="start"
+				transition={flyAndScale}
+				>
+					<DropdownMenu.Item
+						class="flex gap-2 items-center px-3 py-2 text-sm  font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800  rounded-xl"
+						on:click={() => {
+							showAddDocModal = true;
+						}}
+					>
+						<!-- <DocumentArrowUpSolid /> -->
+						<div class=" line-clamp-1">{$i18n.t('Upload Files')}</div>
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						class="flex gap-2 items-center px-3 py-2 text-sm  font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800  rounded-xl"
+						on:click={() => {
+							showAddWebsiteModal = true;
+						}}
+					>
+						<div class=" line-clamp-1">{$i18n.t('Upload Websites')}</div>
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</div>
+		</Dropdown>
 	</div>
 </div>
 
