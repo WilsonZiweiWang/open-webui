@@ -68,6 +68,20 @@
 					href="/admin/settings">{$i18n.t('Settings')}</a
 				>
 
+				<a
+					class="min-w-fit rounded-lg p-1.5 px-3 {$page.url.pathname.includes('/admin/chat-profiles')
+						? 'bg-gray-50 dark:bg-gray-850'
+						: ''} transition"
+					href="/admin/chat-profiles">{$i18n.t('Chat Profiles')}</a
+				>
+
+				<a
+					class="min-w-fit rounded-lg p-1.5 px-3 {$page.url.pathname.includes('/admin/knowledge-bases')
+						? 'bg-gray-50 dark:bg-gray-850'
+						: ''} transition"
+					href="/admin/knowledge-bases">{$i18n.t('Knowledge Bases')}</a
+				>
+
 				<!-- <a
 				class="min-w-fit rounded-lg p-1.5 px-3 {$page.url.pathname.includes('/workspace/documents')
 					? 'bg-gray-50 dark:bg-gray-850'

@@ -58,12 +58,15 @@
 		generateMoACompletion
 	} from '$lib/apis';
 
+	import { getDocs } from '$lib/apis/documents';
+
 	import Banner from '../common/Banner.svelte';
 	import MessageInput from '$lib/components/chat/MessageInput.svelte';
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Navbar from '$lib/components/layout/Navbar.svelte';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
+	import { getKnowledgeBaseById } from '$lib/apis/configs';
 
 	const i18n: Writable<i18nType> = getContext('i18n');
 
@@ -267,7 +270,7 @@
 	onMount(async () => {
 		window.addEventListener('message', onMessageHandler);
 		$socket?.on('chat-events', chatEventHandler);
-
+		console.log(`mounting chat component and chatid is ${$chatId}`);
 		if (!$chatId) {
 			chatIdUnsubscriber = chatId.subscribe(async (value) => {
 				if (!value) {
@@ -292,6 +295,7 @@
 	//////////////////////////
 
 	const initNewChat = async () => {
+		console.log("executing initNewChat");
 		if ($page.url.pathname.includes('/c/')) {
 			window.history.replaceState(history.state, '', `/`);
 		}
@@ -308,6 +312,105 @@
 
 		chatFiles = [];
 		params = {};
+
+		if ($page.url.searchParams.get('models')) {
+			selectedModels = $page.url.searchParams.get('models')?.split(',');
+		} else if ($settings?.models) {
+			selectedModels = $settings?.models;
+		} else if ($config?.default_models) {
+			console.log($config?.default_models.split(',') ?? '');
+			selectedModels = $config?.default_models.split(',');
+		} else {
+			selectedModels = [''];
+		}
+
+		if ($page.url.searchParams.get('web-search') === 'true') {
+			webSearchEnabled = true;
+		}
+
+		if ($page.url.searchParams.get('q')) {
+			prompt = $page.url.searchParams.get('q') ?? '';
+			selectedToolIds = ($page.url.searchParams.get('tool_ids') ?? '')
+				.split(',')
+				.map((id) => id.trim())
+				.filter((id) => id);
+
+			if (prompt) {
+				await tick();
+				submitPrompt(prompt);
+			}
+		}
+
+		if ($page.url.searchParams.get('call') === 'true') {
+			showCallOverlay.set(true);
+		}
+
+		selectedModels = selectedModels.map((modelId) =>
+			$models.map((m) => m.id).includes(modelId) ? modelId : ''
+		);
+
+		const userSettings = await getUserSettings(localStorage.token);
+
+		if (userSettings) {
+			settings.set(userSettings.ui);
+		} else {
+			settings.set(JSON.parse(localStorage.getItem('settings') ?? '{}'));
+		}
+
+		const chatInput = document.getElementById('chat-textarea');
+		setTimeout(() => chatInput?.focus(), 0);
+	};
+
+	const initNewChatFromProfile = async () => {
+		const newChatFromProfileButton = document.getElementById('new-chat-from-profile-button');
+		let profile;
+		if(newChatFromProfileButton){
+			profile = JSON.parse(newChatFromProfileButton.getAttribute('data-profile') ?? '')
+		}
+
+		if (!profile){
+			toast.error($i18n.t('Profile not found'));
+			return;
+		}
+
+		console.log('newChatFromProfileButton ', profile);
+
+		const knowledgeBaseFiles = [];
+		for (const kb of profile.knowledge_bases) {
+			const res = await getKnowledgeBaseById(localStorage.token, kb.id).catch((error) => {
+				toast.error(error);
+				return null;
+			});
+
+			if (res) {
+				knowledgeBaseFiles.push(...(res.docs ?? []));
+			}
+		}
+
+		if ($page.url.pathname.includes('/c/')) {
+			window.history.replaceState(history.state, '', `/`);
+		}
+
+		await chatId.set('');
+		autoScroll = true;
+
+		title = '';
+		messages = [];
+		history = {
+			messages: {},
+			currentId: null
+		};
+
+		
+		const _chatFiles = knowledgeBaseFiles.map((file) => ({
+			type: 'file',
+			status: 'processed',
+			...file
+		})) ?? [];
+
+		// chatFiles
+		chatFiles = _chatFiles;
+		params = profile.params ?? {};
 
 		if ($page.url.searchParams.get('models')) {
 			selectedModels = $page.url.searchParams.get('models')?.split(',');
@@ -1762,6 +1865,7 @@
 			shareEnabled={messages.length > 0}
 			{chat}
 			{initNewChat}
+			{initNewChatFromProfile}
 		/>
 
 		{#if $banners.length > 0 && messages.length === 0 && !$chatId && selectedModels.length <= 1}

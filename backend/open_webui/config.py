@@ -1486,3 +1486,23 @@ AUDIO_TTS_AZURE_SPEECH_OUTPUT_FORMAT = PersistentConfig(
         "AUDIO_TTS_AZURE_SPEECH_OUTPUT_FORMAT", "audio-24khz-160kbitrate-mono-mp3"
     ),
 )
+####################################
+# Chat Profiles
+####################################
+
+CHAT_PROFILES = PersistentConfig(
+    "CHAT_PROFILES",
+    "chat.profiles",
+    os.getenv("CHAT_PROFILES", []),
+)
+
+
+####################################
+# Knowledge Bases
+####################################
+
+KNOWLEDGE_BASES = PersistentConfig(
+    "KNOWLEDGE_BASES",
+    "knowledge_bases",
+    os.getenv("KNOWLEDGE_BASES", []),
+)

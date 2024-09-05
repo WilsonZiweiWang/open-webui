@@ -40,6 +40,8 @@ from open_webui.config import (
     WEBHOOK_URL,
     WEBUI_AUTH,
     WEBUI_BANNERS,
+    CHAT_PROFILES,
+    KNOWLEDGE_BASES,
     AppConfig,
 )
 from open_webui.env import (
@@ -92,6 +94,10 @@ app.state.config.ENABLE_MESSAGE_RATING = ENABLE_MESSAGE_RATING
 app.state.config.OAUTH_USERNAME_CLAIM = OAUTH_USERNAME_CLAIM
 app.state.config.OAUTH_PICTURE_CLAIM = OAUTH_PICTURE_CLAIM
 app.state.config.OAUTH_EMAIL_CLAIM = OAUTH_EMAIL_CLAIM
+
+app.state.config.CHAT_PROFILES = CHAT_PROFILES
+
+app.state.config.KNOWLEDGE_BASES = KNOWLEDGE_BASES
 
 app.state.MODELS = {}
 app.state.TOOLS = {}

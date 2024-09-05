@@ -39,6 +39,11 @@
 	import DeleteConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import Spinner from '../common/Spinner.svelte';
 	import Loader from '../common/Loader.svelte';
+	import Dropdown from '../common/Dropdown.svelte';
+	import Tooltip from '../common/Tooltip.svelte';
+	import { DropdownMenu } from 'bits-ui';
+	import { flyAndScale } from '$lib/utils/transitions';
+	import { getFilteredChatProfiles } from '$lib/apis/configs';
 
 	const BREAKPOINT = 768;
 
@@ -60,6 +65,8 @@
 	// Pagination variables
 	let chatListLoading = false;
 	let allChatsLoaded = false;
+
+	let chatProfiles = [];
 
 	$: filteredChatList = $chats.filter((chat) => {
 		if (search === '') {
@@ -104,7 +111,19 @@
 		chatListLoading = false;
 	};
 
+	const fetchProfiles = async () => {
+		const res = await getFilteredChatProfiles(localStorage.token).catch((error) => {
+			toast.error(error);
+		});
+
+		if (res) {
+			chatProfiles = res;
+		}
+	}
+
 	onMount(async () => {
+		await fetchProfiles();
+
 		mobile.subscribe((e) => {
 			if ($showSidebar && e) {
 				showSidebar.set(false);
@@ -317,6 +336,71 @@
 					</svg>
 				</div>
 			</a>
+
+			<Dropdown>
+				<Tooltip content={$i18n.t('Create a chat from a profile')}>
+					<button
+						class=" px-2 py-2 rounded-xl hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 transition font-medium text-sm flex items-center space-x-1"
+						aria-label={$i18n.t('Create a chat from a profile')}
+						on:click={async () => {
+							await fetchProfiles();
+						}}
+					>
+						<svg 
+							xmlns="http://www.w3.org/2000/svg" 
+							fill="none" 
+							viewBox="0 0 24 24" stroke-
+							width="2.5" 
+							stroke="currentColor" 
+							class=" self-center size-3"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"></path>
+						</svg>
+					</button>
+				</Tooltip>
+				<div slot="content">
+					<DropdownMenu.Content
+					class="w-full max-w-[200px] rounded-xl px-1 py-1  border-gray-300/30 dark:border-gray-700/50 z-50 bg-white dark:bg-gray-850 dark:text-white shadow"
+					sideOffset={15}
+					alignOffset={-8}
+					side="bottom"
+					align="start"
+					transition={flyAndScale}
+					>
+					{#if chatProfiles.length > 0}
+						{#each chatProfiles as profile}
+							<DropdownMenu.Item
+								class="flex gap-2 items-center px-3 py-2 text-sm  font-medium cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800  rounded-xl"
+								on:click={async () => {
+									selectedChatId = null;
+									await goto('/');
+									const newChatFromProfileButton = document.getElementById('new-chat-from-profile-button');
+									if(newChatFromProfileButton){
+										newChatFromProfileButton.dataset.profile = JSON.stringify(profile);
+									}
+									setTimeout(() => {
+										newChatFromProfileButton?.click();
+										if ($mobile) {
+											showSidebar.set(false);
+										}
+									}, 0);
+								}}
+							>
+								<div class=" line-clamp-1">{profile.label}</div>
+							</DropdownMenu.Item>
+						{/each}
+					{:else}
+						<DropdownMenu.Item
+							class="flex gap-2 items-center px-3 py-2 text-sm  font-medium  rounded-xl"
+							aria-label={$i18n.t('No profiles')}
+							disabled
+						>
+							<div class="text-center line-clamp-1 text-slate-300 dark:text-slate-200">{$i18n.t('No profiles')}</div>
+						</DropdownMenu.Item>
+					{/if}
+					</DropdownMenu.Content>
+				</div>
+			</Dropdown>
 
 			<button
 				class=" cursor-pointer px-2 py-2 flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 transition"

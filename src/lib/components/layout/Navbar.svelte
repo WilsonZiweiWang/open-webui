@@ -27,6 +27,7 @@
 	const i18n = getContext('i18n');
 
 	export let initNewChat: Function;
+	export let initNewChatFromProfile: Function;
 	export let title: string = $WEBUI_NAME;
 	export let shareEnabled: boolean = false;
 
@@ -120,6 +121,10 @@
 						</button>
 					</Tooltip>
 				{/if}
+
+				<button id="new-chat-from-profile-button" class="hidden" on:click={() => {
+					initNewChatFromProfile();
+				}}></button>
 
 				<Tooltip content={$i18n.t('New Chat')}>
 					<button
