@@ -13,13 +13,13 @@
     let showAddModal = false;
     let showConfirmDeleteModal = false;
     let deleteId = '';
-    let newKbLabel = '';
+    let newKbTitle = '';
     let knowledgeBases = [];
 
     let query = '';
 
     $: filteredKbs = knowledgeBases.filter(kb => {
-        return (query === '' || kb.label.toLowerCase().includes(query.toLowerCase()));
+        return (query === '' || kb.title.toLowerCase().includes(query.toLowerCase()));
     })
 
     async function fetchKnowledgeBases() {
@@ -34,14 +34,19 @@
     }
 
     $: if(!showAddModal) {
-        newKbLabel = '';
+        newKbTitle = '';
     }
 
     async function deleteKbById(KbId: string) {
         const kb = knowledgeBases.find((_kb) => _kb.id === KbId);
 
+        if (!kb){
+            toast.error($i18n.t('Knowledge base not found'));
+            return;
+        }
+
         const deleteDocRes = await Promise.all(
-                kb.docs.map(async (doc) => {
+                kb.documents.map(async (doc) => {
                     return await deleteDocByName(localStorage.token, doc.name);
                 })
             )
@@ -61,12 +66,13 @@
         }
     }
 
-    const handleAddKnowledgeBase = async (label: string) => {
+    const handleAddKnowledgeBase = async (title: string) => {
         const kb = {
-            label,
-            desc: '',
-            id: '',
-            docs: []
+            title,
+            description: "",
+            documents: [],
+            embedding_model: "",
+            type: "general"
         }
 
         const res = await addKnowledgeBase(localStorage.token, kb).catch((e) => {
@@ -110,13 +116,15 @@
     <div class=" flex justify-between dark:text-gray-300 px-5 pt-4 pb-0.5">
         <div class="w-full flex-row">
             <div class=" self-center text-xs font-medium min-w-fit mb-1">
-                {$i18n.t('Label')}
+                {$i18n.t('Title')}
             </div>
             <input
+                id="new-knowledge-base-title-input"
+                aria-label={$i18n.t('Enter knowledge base title')}
                 class="w-full rounded-lg py-2 px-4 text-sm border dark:border-gray-600
                 dark:bg-gray-900 bg-gray-50 outline-none"
-                placeholder={$i18n.t('Enter knowledge base label')}
-                bind:value={newKbLabel}
+                placeholder={$i18n.t('Enter knowledge base title')}
+                bind:value={newKbTitle}
             />
         </div>
     </div>
@@ -136,7 +144,7 @@
                     <button
                         class=" self-center flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm font-medium bg-green-400 hover:bg-green-300 text-white"
                         on:click={() => {
-                            handleAddKnowledgeBase(newKbLabel);
+                            handleAddKnowledgeBase(newKbTitle);
                             showAddModal = false;
                         }}
                     >
@@ -187,6 +195,12 @@
                         type="button"
                         on:click={() => {
                             showAddModal = true;
+                            setTimeout(() => {
+                                const newKbInput = document.getElementById('new-knowledge-base-title-input');
+                                if (newKbInput) {
+                                    newKbInput.focus();
+                                }
+                            }, 0);
                         }}
                     >
                         <svg
@@ -231,7 +245,7 @@
                                     </svg>
                                 </div>
                                 <div class=" self-center flex-1">
-                                    <div class=" font-semibold line-clamp-1">#{kb.label}</div>
+                                    <div class=" font-semibold line-clamp-1">#{kb.title}</div>
                                 </div>
                             </div>
                         </div>

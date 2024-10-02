@@ -363,27 +363,28 @@
 
 	const initNewChatFromProfile = async () => {
 		const newChatFromProfileButton = document.getElementById('new-chat-from-profile-button');
-		let profile;
-		if(newChatFromProfileButton){
-			profile = JSON.parse(newChatFromProfileButton.getAttribute('data-profile') ?? '')
+
+		if(!newChatFromProfileButton){
+			toast.error($i18n.t('Failed initialize the chat with the profile, profile not found'));
+			return;
 		}
+
+		let profile = JSON.parse(newChatFromProfileButton.getAttribute('data-profile') ?? '')
 
 		if (!profile){
 			toast.error($i18n.t('Profile not found'));
 			return;
 		}
 
-		console.log('newChatFromProfileButton ', profile);
-
 		const knowledgeBaseFiles = [];
-		for (const kb of profile.knowledge_bases) {
-			const res = await getKnowledgeBaseById(localStorage.token, kb.id).catch((error) => {
+		for (const id of profile.knowledge_bases) {
+			const res = await getKnowledgeBaseById(localStorage.token, id).catch((error) => {
 				toast.error(error);
 				return null;
 			});
 
 			if (res) {
-				knowledgeBaseFiles.push(...(res.docs ?? []));
+				knowledgeBaseFiles.push(...(res.documents ?? []));
 			}
 		}
 
@@ -458,6 +459,8 @@
 
 		const chatInput = document.getElementById('chat-textarea');
 		setTimeout(() => chatInput?.focus(), 0);
+
+		toast.success($i18n.t(`Chat initialized with the profile: ${profile.title}`));
 	};
 
 	const loadChat = async () => {
