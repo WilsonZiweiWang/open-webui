@@ -13,24 +13,13 @@
     let showConfirmDeleteModal = false;
     let deleteId = '';
 
-    let initProfile = {
-        label: '',
-        id: '',
-        roles_allowed: ['user'],
-        enabled: true,
-        params: {
-            system: ''
-        },
-        files: []
-    };
-
-    let newProfilelabel = '';
-    let profiles: any[] = [];
+    let newProfileTitle = '';
+    let profiles = [];
 
     let query = '';
 
     $: filteredProfiles = profiles.filter(profile => {
-        return (query === '' || profile.label.includes(query));
+        return (query === '' || profile.title.includes(query));
     })
 
     async function fetchProfiles() {
@@ -45,7 +34,7 @@
     }
 
     $: if(!showAddProfileModal) {
-        newProfilelabel = '';
+        newProfileTitle = '';
     }
 
     async function deleteProfile(profileId: string) {
@@ -63,10 +52,14 @@
         }
     }
 
-    const handleAddChatProfile = async (label: string) => {
+    const handleAddChatProfile = async (title: string) => {
         const profile = {
-            ...initProfile,
-            label
+            title,
+            description: '',
+            roles_allowed: ['user'],
+            knowledge_bases: [],
+            enabled: true,
+            params: {},
         }
 
         const res = await addChatProfile(localStorage.token, profile).catch((e) => {
@@ -110,13 +103,14 @@
     <div class=" flex justify-between dark:text-gray-300 px-5 pt-4 pb-0.5">
         <div class="w-full flex-row">
             <div class=" self-center text-xs font-medium min-w-fit mb-1">
-                {$i18n.t('Label')}
+                {$i18n.t('Title')}
             </div>
             <input
+                id="new-chat-profile-title-input"
                 class="w-full rounded-lg py-2 px-4 text-sm border dark:border-gray-600
                 dark:bg-gray-900 bg-gray-50 outline-none"
-                placeholder={$i18n.t('Enter profile label')}
-                bind:value={newProfilelabel}
+                placeholder={$i18n.t('Enter profile title')}
+                bind:value={newProfileTitle}
             />
         </div>
     </div>
@@ -136,7 +130,7 @@
                     <button
                         class=" self-center flex items-center gap-1 px-3.5 py-2 rounded-xl text-sm font-medium bg-green-400 hover:bg-green-300 text-white"
                         on:click={() => {
-                            handleAddChatProfile(newProfilelabel);
+                            handleAddChatProfile(newProfileTitle);
                             showAddProfileModal = false;
                         }}
                     >
@@ -187,6 +181,12 @@
                         type="button"
                         on:click={() => {
                             showAddProfileModal = true;
+                            setTimeout(() => {
+                                const newProfileInput = document.getElementById('new-chat-profile-title-input');
+                                if (newProfileInput) {
+                                    newProfileInput.focus();
+                                }
+                            }, 0);
                         }}
                     >
                         <svg
@@ -233,7 +233,7 @@
                                     </svg>
                                 </div>
                                 <div class=" self-center flex-1">
-                                    <div class=" font-semibold line-clamp-1">#{profile.label}</div>
+                                    <div class=" font-semibold line-clamp-1">#{profile.title}</div>
                                     <!-- <div class=" text-xs overflow-hidden text-ellipsis line-clamp-1">
                                         {profile.roles_allowed.join(', ')}
                                     </div> -->

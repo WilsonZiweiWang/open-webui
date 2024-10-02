@@ -24,16 +24,18 @@
     let kbId = $page.params.id;
     let selectedTab = 'documents';
     let knowledgeBase = {
-        label: '',
-        id: '',
-        desc: '',
-        docs: []
+        id: "",
+        title: "title",
+        description: "description",
+        embedding_model: "model",
+        type: "general",
+        documents: []
     };
     let search_doc_query = '';
     let showAddDocModal = false;
     let showAddWebsiteModal = false;
 
-    $: filteredDocs = knowledgeBase.docs.filter((doc) => {
+    $: filteredDocs = knowledgeBase.documents.filter((doc) => {
         return search_doc_query === '' || (doc.name.includes(search_doc_query) || doc.title.includes(search_doc_query) || doc.filename.includes(search_doc_query)) 
     });
 
@@ -42,7 +44,7 @@
     }
 
     const deleteDoc = async (name) => {
-        knowledgeBase.docs = knowledgeBase.docs.filter((d) => d.name !== name);
+        knowledgeBase.documents = knowledgeBase.documents.filter((d) => d.name !== name);
         await updateKnowledgeBase();
 		await deleteDocByName(localStorage.token, name);
 		await documents.set(await getDocs(localStorage.token));
@@ -77,7 +79,7 @@
 				});
                 
                 if(createdDoc){
-                    knowledgeBase.docs.push(createdDoc);
+                    knowledgeBase.documents.push(createdDoc);
                 }
 			}
             await documents.set(await getDocs(localStorage.token));
@@ -130,7 +132,7 @@
 			});
 			await documents.set(await getDocs(localStorage.token));
             if (createdDoc){
-                knowledgeBase.docs.push(createdDoc)
+                knowledgeBase.documents.push(createdDoc)
                 await updateKnowledgeBase();
             }
 		}
@@ -142,8 +144,8 @@
                 toast.error($i18n.t('Failed to save knowledge base'));
             });
 
-        if (res.kb) {
-            knowledgeBase = res.kb;
+        if (res) {
+            knowledgeBase = res;
             if(showSuccessMessage){
                 toast.success($i18n.t('Knowledge base saved successfully'));
             }
@@ -262,15 +264,15 @@
                 <div class="flex w-full gap-2 mt-2">
                     <div class="w-full">
                         <div class=" self-center text-xs font-medium min-w-fit mb-1">
-                            {$i18n.t('Label')}
+                            {$i18n.t('Title')}
                         </div>
                         <input
                             class="w-full rounded-lg py-2 px-4 text-sm border dark:border-gray-600
                             dark:bg-gray-900 outline-none"
-                            placeholder={$i18n.t('Enter profile label')}
-                            id="knowledge-base-label"
-                            aria-label="knowledge-base-label"
-                            bind:value={knowledgeBase.label}
+                            placeholder={$i18n.t('Enter profile title')}
+                            id="knowledge-base-title"
+                            aria-label="knowledge-base-title"
+                            bind:value={knowledgeBase.title}
                         />
                     </div>
                     <div class="w-full"></div>
@@ -287,7 +289,7 @@
                             placeholder={$i18n.t('Enter description')}
                             id="knowledge-base-description"
                             aria-label="knowledge-base-description"
-                            bind:value={knowledgeBase.desc}
+                            bind:value={knowledgeBase.description}
                         />
                     </div>
                 </div>

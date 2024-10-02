@@ -386,7 +386,7 @@
 									}, 0);
 								}}
 							>
-								<div class=" line-clamp-1">{profile.label}</div>
+								<div class=" line-clamp-1">{profile.title}</div>
 							</DropdownMenu.Item>
 						{/each}
 					{:else}

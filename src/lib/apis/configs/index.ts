@@ -179,7 +179,7 @@ export const setBanners = async (token: string, banners: Banner[]) => {
 export const getAllChatProfiles = async (token: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/chat/profiles/all`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/chat-profiles/info`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export const getAllChatProfiles = async (token: string) => {
 export const getFilteredChatProfiles = async (token: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/chat/profiles/filtered`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/chat-profiles/filtered`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ export const getFilteredChatProfiles = async (token: string) => {
 export const getChatProfileById = async (token: string, profile_id: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/chat/profile/${profile_id}`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/chat-profiles/${profile_id}`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -260,13 +260,21 @@ export const getChatProfileById = async (token: string, profile_id: string) => {
 export const saveChatProfile = async (token: string, profile) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/chat/profile/update`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/chat-profiles/update/${profile.id}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`
 		},
-		body: JSON.stringify(profile)
+		body: JSON.stringify({
+			title: profile.title,
+			description: profile.description,
+			roles_allowed: profile.roles_allowed,
+			llm_model: profile.llm_model,
+			knowledge_bases: profile.knowledge_bases,
+			enabled: profile.enabled,
+			params: profile.params
+		})
 	})
 		.then(async (res) => {
 			if (!res.ok) throw await res.json();
@@ -288,7 +296,7 @@ export const saveChatProfile = async (token: string, profile) => {
 export const addChatProfile = async (token: string, profile) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/chat/profile/add`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/chat-profiles/add`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -316,7 +324,7 @@ export const addChatProfile = async (token: string, profile) => {
 export const deleteChatProfile = async (token: string, profile_id: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/chat/profile/${profile_id}`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/chat-profiles/${profile_id}`, {
 		method: 'DELETE',
 		headers: {
 			'Content-Type': 'application/json',
@@ -343,7 +351,7 @@ export const deleteChatProfile = async (token: string, profile_id: string) => {
 export const getKnowledgeBases = async (token: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/knowledge-bases`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge-bases`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -370,7 +378,7 @@ export const getKnowledgeBases = async (token: string) => {
 export const getKnowledgeBaseById = async (token: string, kb_id: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/knowledge-base/${kb_id}`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge-bases/${kb_id}`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -397,7 +405,7 @@ export const getKnowledgeBaseById = async (token: string, kb_id: string) => {
 export const saveKnowledgeBase = async (token: string, kb) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/knowledge-base/update`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge-bases/update/${kb.id}`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -425,7 +433,7 @@ export const saveKnowledgeBase = async (token: string, kb) => {
 export const addKnowledgeBase = async (token: string, kb) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/knowledge-base/add`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge-bases/add`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -453,7 +461,7 @@ export const addKnowledgeBase = async (token: string, kb) => {
 export const deleteKnowledgeBase = async (token: string, kb_id: string) => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_API_BASE_URL}/configs/knowledge-base/${kb_id}`, {
+	const res = await fetch(`${WEBUI_API_BASE_URL}/knowledge-bases/${kb_id}`, {
 		method: 'DELETE',
 		headers: {
 			'Content-Type': 'application/json',

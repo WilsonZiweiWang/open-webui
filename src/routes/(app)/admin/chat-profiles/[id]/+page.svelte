@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
     import { getContext, onMount } from 'svelte';
-	import { user } from '$lib/stores';
+	import { user, models } from '$lib/stores';
 	import { toast } from 'svelte-sonner';
     import Switch from '$lib/components/common/Switch.svelte';
     import Tooltip from '$lib/components/common/Tooltip.svelte';
@@ -11,15 +11,19 @@
 	import AdjustmentsHorizontal from '$lib/components/icons/AdjustmentsHorizontal.svelte';
 	import Modal from '$lib/components/common/Modal.svelte';
 	import AdvancedParams from '$lib/components/chat/Settings/Advanced/AdvancedParams.svelte';
+	import Selector from '$lib/components/chat/ModelSelector/Selector.svelte';
 
     const i18n = getContext('i18n');
 
     let selectedTab = 'general';
     let profileId = $page.params.id;
     let profile = {
-        label: '',
         id: '',
+        title: '',
+        description: '',
         roles_allowed: [],
+        llm_model: '',
+        knowledge_bases: [],
         enabled: true,
         params: {
             system: '',
@@ -46,24 +50,24 @@
             num_gpu: null,
             template: null
         },
-        knowledge_bases: []
     };
-    let roles = ['user']; // TODO: fetch roles from API when there is one
+    let roles = ['user'];
     let search_kb_query = '';
 
     let showAddModal = false;
-    let knowledgeBases = [];
+    let allKnowledgeBases = [];
+    let profileKnowledgeBases = []; // To contain the entire information instead of just the ID
 
-    $: filteredKbs = profile.knowledge_bases.filter((kb) => {
-        return search_kb_query === '' || kb.label.toLowerCase().includes(search_kb_query.toLowerCase());
+    $: filteredKbs = profileKnowledgeBases.filter((kb) => {
+        return search_kb_query === '' || kb.title.toLowerCase().includes(search_kb_query.toLowerCase());
     });
 
-    $: if(showAddModal) {
-        fetchKnowledgeBases();
-    }
+    // $: if(showAddModal) {
+    //     fetchKnowledgeBases();
+    // }
 
-    $: modalKnowledgeBases = knowledgeBases.filter((kb) => {
-                    return !profile.knowledge_bases.some((pKb) => pKb.id === kb.id);
+    $: modalKnowledgeBases = allKnowledgeBases.filter((kb) => {
+                    return !profile.knowledge_bases.some((id) => id === kb.id);
         }).map((kb) => {
             return {
                 ...kb,
@@ -78,12 +82,12 @@
         }
 
         const res = await saveChatProfile(localStorage.token, profile).catch((e) => {
-                console.error(e);
-                toast.error($i18n.t('Failed to save Chat Profile'));
-            });
+            console.error(e);
+            toast.error($i18n.t('Failed to save Chat Profile'));
+        });
 
-        if (res.profile) {
-            profile = res.profile;
+        if (res) {
+            profile = res;
             toast.success($i18n.t('Chat Profile saved successfully'));
         }
     }
@@ -95,19 +99,32 @@
         });
 
         if (res) {
-            knowledgeBases = res;
+            allKnowledgeBases = res;
+            profileKnowledgeBases = [];
+            for (const kb_id of profile.knowledge_bases) {
+                const kb = allKnowledgeBases.find((kb) => kb.id === kb_id);
+                if (kb) {
+                    profileKnowledgeBases.push(kb);
+                }
+            }
         }
     }
 
     const handleAddKnowledgeBaseToProfile = async () => {
-        const selectedKbs = modalKnowledgeBases.filter((kb) => kb.selected === 'checked').map((kb) => {
-            return {
-                    id: kb.id,
-                    label: kb.label,
-            }
-        })
+        const selectedKbs = modalKnowledgeBases.filter((kb) => kb.selected === 'checked')
 
-        profile.knowledge_bases = [...profile.knowledge_bases, ...selectedKbs];
+        for (const kb of selectedKbs){
+            if (profile.knowledge_bases.includes(kb.id)){
+                toast.error($i18n.t(`Knowledge base ${kb.title} with id ${kb.id} is already added`));
+                return;
+            }
+        }
+
+        profile.knowledge_bases = [...profile.knowledge_bases, ...selectedKbs.map((kb) => kb.id)];
+        profileKnowledgeBases = [...profileKnowledgeBases, ...selectedKbs.map((kb) => {
+            kb.selected = 'unchecked';
+            return kb;
+        })];
     }
 
     onMount(async () => {
@@ -117,7 +134,7 @@
             profile = res;
         }
 
-        fetchKnowledgeBases();
+        await fetchKnowledgeBases();
     })
 </script>
 
@@ -182,7 +199,7 @@
                                     </svg>
                                 </div>
                                 <div class=" self-center flex-1">
-                                    <div class=" font-semibold line-clamp-1">#{kb.label}</div>
+                                    <div class=" font-semibold line-clamp-1">#{kb.title}</div>
                                 </div>
                             </div>
                         </div>
@@ -334,16 +351,32 @@
                     <div class="flex w-full gap-2 mt-2">
                         <div class="w-full">
                             <div class=" self-center text-xs font-medium min-w-fit mb-1">
-                                {$i18n.t('Label')}
+                                {$i18n.t('Title')}
                             </div>
                             <input
                                 class="w-full rounded-lg py-2 px-4 text-sm border dark:border-gray-600
                                 dark:bg-gray-900 outline-none"
-                                placeholder={$i18n.t('Enter profile label')}
-                                bind:value={profile.label}
+                                placeholder={$i18n.t('Enter profile title')}
+                                bind:value={profile.title}
                             />
                         </div>
                         <div class="w-full"></div>
+                    </div>
+
+                    <div class="flex w-full gap-2 mt-2">
+                        <div class="w-full">
+                            <div class=" self-center text-xs font-medium min-w-fit mb-1">
+                                {$i18n.t('Description')}
+                            </div>
+                            <textarea
+                                class="px-3 py-1.5 text-sm w-full bg-transparent border dark:border-gray-600 outline-none rounded-lg"
+                                rows="4"
+                                placeholder={$i18n.t('Enter description')}
+                                id="chat-profile-description"
+                                aria-label="chat-profile-description"
+                                bind:value={profile.description}
+                            />
+                        </div>
                     </div>
                 
                     <div class="flex w-full gap-2 mt-2">
@@ -398,7 +431,9 @@
                     </div>
                     
                     <div class="flex justify-between items-center text-sm mt-2">
-                        <div class="  font-medium">{$i18n.t('Enable')}</div>
+                        <Tooltip content={$i18n.t("If disabled, this profile can't be used to create a chat")} placement="top-start">
+                            <div class="  font-medium">{$i18n.t('Enable')}</div>
+                        </Tooltip>
                         <div class="mt-1">
                             <Switch
                                 bind:state={profile.enabled}
@@ -409,6 +444,19 @@
                 {:else if selectedTab === 'params'}
                     <div class="flex w-full gap-2 mt-2">
                         <div class="w-full">
+                            <div class=" self-center text-xs font-medium min-w-fit mb-1">
+                                {$i18n.t('LLM Model')}
+                            </div>
+                            <Selector
+                                placeholder={$i18n.t('Select a model')}
+                                items={$models.map((model) => ({
+                                    value: model.id,
+                                    label: model.name,
+                                    model: model
+                                }))}
+                                showTemporaryChatControl={false}
+                                bind:value={profile.llm_model}
+                            />
                             <div class=" self-center text-xs font-medium min-w-fit mb-1">
                                 {$i18n.t('System Prompt')}
                             </div>
@@ -507,7 +555,7 @@
                                                 </svg>
                                             </div>
                                             <div class=" self-center flex-1">
-                                                <div class=" font-semibold line-clamp-1">#{kb.label}</div>
+                                                <div class=" font-semibold line-clamp-1">#{kb.title}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -542,7 +590,8 @@
                                             aria-label={$i18n.t('Remove knowledge base from this profile')}
                                             on:click={(e) => {
                                                 e.stopPropagation();
-                                                profile.knowledge_bases = profile.knowledge_bases.filter((k) => k.id !== kb.id);
+                                                profile.knowledge_bases = profile.knowledge_bases.filter((id) => id !== kb.id);
+                                                profileKnowledgeBases = profileKnowledgeBases.filter((_kb) => _kb.id !== kb.id);
                                             }}
                                         >
                                         <svg

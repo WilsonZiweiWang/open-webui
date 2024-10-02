@@ -19,6 +19,8 @@ from open_webui.apps.webui.routers import (
     tools,
     users,
     utils,
+    chat_profiles,
+    knowledge_bases,
 )
 from open_webui.apps.webui.utils import load_function_module_by_id
 from open_webui.config import (
@@ -127,6 +129,9 @@ app.include_router(tools.router, prefix="/tools", tags=["tools"])
 app.include_router(functions.router, prefix="/functions", tags=["functions"])
 
 app.include_router(utils.router, prefix="/utils", tags=["utils"])
+
+app.include_router(chat_profiles.router, prefix="/chat-profiles", tags=["chat-profiles"])
+app.include_router(knowledge_bases.router, prefix="/knowledge-bases", tags=["knowledge-base"])
 
 
 @app.get("/")

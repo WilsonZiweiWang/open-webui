@@ -2,3 +2,7 @@ Generic single-database configuration.
 
 Create new migrations with
 DATABASE_URL=<replace with actual url> alembic revision --autogenerate -m "a description"
+
+Omit `--autogenerate` to create blank template.
+
+Run `alembic upgrade head` to apply migrations.
